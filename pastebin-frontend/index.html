@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Demo</title>
+
+</head>
+
+<!-- Works with ws-node in this repo -->
+
+<body>
+    <h2>WebSocket Pastebin</h2>
+    <input id="in" type="text" placeholder="Write to convert to upper case">
+    <p id="out">...</p>
+    <p id="connection-status">Not Connected</p>
+    <p id="err" style="color: red;"></p>
+
+    <input type='button' id='reconnect' value='Reconnect' /><br>
+
+    <details id="settings">
+        <summary>Settings</summary>
+        <input type="text" id="ws-token" placeholder="WS_TOKEN"><br>
+        <input type="text" id="server-url" placeholder="URL"><br>
+        <input type="button" id="update" value="save">
+    </details>
+
+    <script>
+        const WS_TOKEN = localStorage.getItem('ws_token') || 'my-secret-token';
+        const URL = localStorage.getItem('server-url');
+        document.querySelector('#ws-token').value = WS_TOKEN;
+        document.querySelector('#server-url').value = URL;
+
+        function connectWebSocket() {
+            // Create a WebSocket connection
+            const socket = new WebSocket(`${URL}?token=${WS_TOKEN}`);
+
+            // Connection established 
+            socket.onopen = function (event) {
+                console.log('Connected to WebSocket server');
+                document.querySelector("#connection-status").innerText = "Connected to WebSocket Server!";
+            };
+
+            // Message listener
+            socket.onmessage = function (event) {
+                console.log('Received message:', event.data);
+                const data = JSON.parse(event.data);
+
+                console.log(data)
+
+                if (data.status == 0) {
+                    document.querySelector('#out').innerHTML = data.msg;
+                    document.querySelector('#err').innerHTML = '';
+                } else {
+                    document.querySelector('#err').innerHTML = data.msg;
+                }
+            };
+            // Connection closed 
+            socket.onclose = function (event) {
+                console.log('Connection closed');
+                document.querySelector("#connection-status").innerHTML = "Connection closed"
+            };
+
+            document.querySelector('#in').addEventListener('input', (evt) => {
+                socket.send(evt.target.value);
+            });
+        }
+
+        connectWebSocket()
+
+        function reconnect() {
+            console.log("Trying to reconnect")
+            connectWebSocket()
+        }
+
+        document.querySelector('#reconnect').addEventListener('click', reconnect)
+
+        document.querySelector('#update').addEventListener('click', () => {
+            localStorage.setItem("ws-token", document.querySelector('#ws-token').value)
+            localStorage.setItem("server-url", document.querySelector('#server-url').value)
+        })
+    </script>
+
+</body>
+
+</html>
